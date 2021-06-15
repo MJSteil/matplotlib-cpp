@@ -30,7 +30,7 @@ A more comprehensive example:
 
 namespace plt = matplotlibcpp;
 
-int main() 
+int main()
 {
     // Prepare data.
     int n = 5000;
@@ -73,26 +73,26 @@ Alternatively, matplotlib-cpp also supports some C++11-powered syntactic sugar:
 using namespace std;
 namespace plt = matplotlibcpp;
 
-int main() 
-{    
+int main()
+{
     // Prepare data.
     int n = 5000; // number of data points
-    vector<double> x(n),y(n); 
+    vector<double> x(n),y(n);
     for(int i=0; i<n; ++i) {
         double t = 2*M_PI*i/n;
         x.at(i) = 16*sin(t)*sin(t)*sin(t);
         y.at(i) = 13*cos(t) - 5*cos(2*t) - 2*cos(3*t) - cos(4*t);
     }
 
-    // plot() takes an arbitrary number of (x,y,format)-triples. 
+    // plot() takes an arbitrary number of (x,y,format)-triples.
     // x must be iterable (that is, anything providing begin(x) and end(x)),
-    // y must either be callable (providing operator() const) or iterable. 
+    // y must either be callable (providing operator() const) or iterable.
     plt::plot(x, y, "r-", x, [](double d) { return 12.5+abs(sin(d)); }, "k-");
 
 
     // show plots
     plt::show();
-} 
+}
 ```
     g++ modern.cpp -std=c++11 -I/usr/include/python2.7 -lpython
 
@@ -199,23 +199,50 @@ On Ubuntu:
     sudo apt-get install python-matplotlib python-numpy python2.7-dev
 
 If, for some reason, you're unable to get a working installation of numpy on your system,
-you can add the define `WITHOUT_NUMPY` to erase this dependency.
+you can define the macro `WITHOUT_NUMPY` before including the header file to erase this
+dependency.
 
-The C++-part of the library consists of the single header file `matplotlibcpp.h` which can be placed
-anywhere.
+The C++-part of the library consists of the single header file `matplotlibcpp.h` which
+can be placed anywhere.
 
-Since a python interpreter is opened internally, it is necessary to link against `libpython2.7` in order to use
-matplotlib-cpp.
+Since a python interpreter is opened internally, it is necessary to link
+against `libpython` in order to user matplotlib-cpp. Most versions should
+work, although python likes to randomly break compatibility from time to time
+so some caution is advised when using the bleeding edge.
+
 
 # CMake
 
-If you prefer to use CMake as build system, you will want to add something like this to your
-CMakeLists.txt:
-```cmake
-find_package(PythonLibs 2.7)
-target_include_directories(myproject PRIVATE ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(myproject ${PYTHON_LIBRARIES})
-```
+The C++ code is compatible to both python2 and python3. However, the `CMakeLists.txt`
+file is currently set up to use python3 by default, so if python2 is required this
+has to be changed manually. (a PR that adds a cmake option for this would be highly
+welcomed)
+
+**NOTE**: By design (of python), only a single python interpreter can be created per
+process. When using this library, *no other* library that is spawning a python
+interpreter internally can be used.
+
+To compile the code without using cmake, the compiler invocation should look like
+this:
+
+    g++ example.cpp -I/usr/include/python2.7 -lpython2.7
+
+This can also be used for linking against a custom build of python
+
+    g++ example.cpp -I/usr/local/include/fancy-python4 -L/usr/local/lib -lfancy-python4
+
+# Vcpkg
+
+You can download and install matplotlib-cpp using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    vcpkg install matplotlib-cpp
+  
+The matplotlib-cpp port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
 
 # C++11
 
@@ -226,25 +253,14 @@ Note that support for c++98 was dropped more or less accidentally, so if you hav
 with an ancient compiler and still want to enjoy the latest additional features, I'd
 probably merge a PR that restores support.
 
-# Python 3
-
-This library supports both python2 and python3 (although the python3 support is probably far less tested,
-so it is recommended to prefer python2.7). To switch the used python version, simply change
-the compiler flags accordingly.
-
-    g++ example.cpp -I/usr/include/python3.6 -lpython3.6
-
-The same technique can be used for linking against a custom build of python
-
-    g++ example.cpp -I/usr/local/include/fancy-python4 -L/usr/local/lib -lfancy-python4
 
 
 Why?
 ----
-I initially started this library during my diploma thesis. The usual approach of 
+I initially started this library during my diploma thesis. The usual approach of
 writing data from the c++ algorithm to a file and afterwards parsing and plotting
 it in python using matplotlib proved insufficient: Keeping the algorithm
-and plotting code in sync requires a lot of effort when the C++ code frequently and substantially 
+and plotting code in sync requires a lot of effort when the C++ code frequently and substantially
 changes. Additionally, the python yaml parser was not able to cope with files that
 exceed a few hundred megabytes in size.
 
@@ -273,3 +289,6 @@ Todo/Issues/Wishlist
 
 * If you use Anaconda on Windows, you might need to set PYTHONHOME to Anaconda home directory and QT_QPA_PLATFORM_PLUGIN_PATH to %PYTHONHOME%Library/plugins/platforms. The latter is for especially when you get the error which says 'This application failed to start because it could not find or load the Qt platform plugin "windows"
 in "".'
+
+* MacOS: `Unable to import matplotlib.pyplot`. Cause: In mac os image rendering back end of matplotlib (what-is-a-backend to render using the API of Cocoa by default). There is Qt4Agg and GTKAgg and as a back-end is not the default. Set the back end of macosx that is differ compare with other windows or linux os.
+Solution is described [here](https://stackoverflow.com/questions/21784641/installation-issue-with-matplotlib-python?noredirect=1&lq=1), additional information can be found there too(see links in answers).
